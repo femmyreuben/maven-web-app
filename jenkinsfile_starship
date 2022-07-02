@@ -1,0 +1,48 @@
+//scripted groovy
+node("node1")
+{
+    def MHD = tool name: "maven3.8.5"
+    stage ("1.Initiation"){
+        sh "echo start of Start of starship project"
+    }
+    stage ("2.Gitclone"){
+        sh "echo start of git clone"
+        git "https://github.com/femmyreuben/maven-web-app.git"
+    }
+    stage ("3.Build"){
+        sh "echo build the application with maven"
+        sh "${MHD}/bin/mvn package"
+    }
+    stage ("4.CodeQuality"){
+        sh "echo starting code test with sonarqube"
+        //sh "${MHD}/bin/mvn sonar:sonar"
+    }
+    stage ("5.Artifactory"){
+        sh "echo backup to Nexus"
+        //sh "${MHD}/bin/mvn deploy"
+    }
+    stage ("6.DeploytoUAT"){
+        sh "echo deploying to application server"
+        deploy adapters: [tomcat9(credentialsId: 'tomcat_cred', path: '', url: 'http://34.219.132.230:8080/')], contextPath: 'starship7', war: 'target/*.war'
+    }
+    stage ("7.Approval"){
+        sh "echo Approval required"
+        timeout(time:7, unit:'DAYS'){
+            input message: 'Approval for Production'
+    }
+    }
+    stage ("8.DeploytoPROD"){
+        sh "echo deploying to production environment application server"
+        deploy adapters: [tomcat9(credentialsId: 'tomcat_cred', path: '', url: 'http://34.219.132.230:8080/')], contextPath: 'starship7', war: 'target/*.war'
+    }
+    
+    stage ("9.SlackNotification"){
+        sh "echo send slack notification Devops teams"
+        //slackSend channel: 'slack-jenkins-integration', message: 'Build Success'
+    }
+    stage ("10.EmailNotification"){
+        sh "echo send email notification Devops teams"
+        emailext body: 'The build was successful', subject: 'Build successful', to: 'starship@gmail.com'
+    }
+}
+
